@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+        <!-- Babylon.js -->
+        <script src="hand.minified-1.2.js"></script>
+        <script src="babylon.1.14-debug.js"></script>
+        <script src="terrain.js"></script>
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+    </head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+        var engine = new BABYLON.Engine(canvas, true);
+
+        function createScene() {
+            var scene = new BABYLON.Scene(engine);
+
+            // Light
+            var spot = new BABYLON.SpotLight("spot", new BABYLON.Vector3(0, 30, 30), new BABYLON.Vector3(0, -1, 0), 17, 1, scene);
+            spot.diffuse = new BABYLON.Color3(1, 1, 1);
+            spot.specular = new BABYLON.Color3(0, 0, 0);
+            spot.intensity = 0.4;
+
+            // Camera
+            var camera = new BABYLON.ArcRotateCamera("Camera", 0, 1.1, 1000, new BABYLON.Vector3.Zero(), scene);
+            camera.lowerBetaLimit = 0.1;
+            camera.upperBetaLimit = (Math.PI / 2) * 0.9;
+            camera.lowerRadiusLimit = 30;
+            camera.upperRadiusLimit = 1000;
+            camera.attachControl(canvas);
+
+            // Ground
+            var groundMaterial = new BABYLON.StandardMaterial("ground", scene);
+            //groundMaterial.diffuseTexture = new BABYLON.Texture("textures/earth.jpg", scene);
+            var terrain = new Terrain(9);
+            terrain.generate(1);
+            var vertexData = BABYLON.VertexData.CreateGroundFromHeightMap(1000, 1000, 250, 0, 150, terrain.toBuffer(), terrain.size, terrain.size);
+            var ground = new BABYLON.GroundMesh(name, scene);
+
+            vertexData.applyToMesh(ground, false);
+            ground.material = groundMaterial;
+
+            //Sphere to see the light's position
+            var sun = new BABYLON.Mesh.CreateSphere("sun", 10, 4, scene);
+            sun.material = new BABYLON.StandardMaterial("sun", scene);
+            sun.material.emissiveColor = new BABYLON.Color3(1, 1, 0);
+
+            // Skybox
+            var skybox = BABYLON.Mesh.CreateBox("skyBox", 3000.0, scene);
+            var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+            skyboxMaterial.backFaceCulling = false;
+            skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/skybox", scene);
+            skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+            skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+            skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+            skybox.material = skyboxMaterial;
+
+            //Sun animation
+            scene.registerBeforeRender(function () {
+                sun.position = spot.position;
+                spot.position.x -= 0.5;
+                if (spot.position.x < -90)
+                    spot.position.x = 100;
+            });
+
+            return scene;
+        }
+
+        var scene = createScene();
+
+        engine.runRenderLoop(function () {
+            scene.render();
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+
+    </script>
+</body>
+</html>
